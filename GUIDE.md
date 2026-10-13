@@ -1,0 +1,176 @@
+# Making a tool with OpenECS
+
+This guide goes through the template, one part at a time, and ends with what you need to make your own tool from it. The template's tool is a board of notes beside a small panel in C. Each file has comments that explain what OpenECS does with it.
+
+## Contents
+
+1. What you need
+2. Run the tool
+3. The folders
+4. The preset
+5. A plugin
+6. Panels
+7. Drawing
+8. Settings
+9. Functions and keys
+10. Saved state
+11. Events and timers
+12. A plugin in C
+13. Your editor
+14. Tests
+15. Shipping your tool
+16. Where to go next
+
+## 1. What you need
+
+- **OpenECS.** Download the archive from [OpenECS's releases](https://github.com/omerfuyar/OpenECS/releases) and unpack it into a folder named `openecs/` in this repository. Git ignores that folder. To keep OpenECS elsewhere, set `OPENECS` to its folder for `build.sh`, and change the path in `.luarc.json`.
+- **gcc 14 or later**, for plugins in C. Lua plugins need nothing else.
+- **An editor with the Lua language server**, such as VS Code with the Lua extension, for completion and checks (13).
+
+## 2. Run the tool
+
+``` shell
+./build.sh                                   # builds the plugin in C
+openecs/OpenECS --fresh --preset preset.lua
+```
+
+`--fresh` starts from the preset each time. Without it, a tool starts from its last session when the setting `ecs.keepSession` is on.
+
+Type a note and press Return, or Add. Click a note to choose it; Delete or Remove takes it away. Drag a tab to move a panel: beside another, into its tab row, or out of the window.
+
+Every key of OpenECS starts with Alt+W. Press it to see the list:
+
+| After Alt+W | Does                                          |
+| ----------- | --------------------------------------------- |
+| `,`         | Opens the settings window.                    |
+| N           | Lists the panel types of the tool, to open one. |
+| Shift+R     | Resets the layout to the preset's.            |
+| Q           | Quits.                                        |
+| Arrows      | Move the focus between panels.                |
+
+## 3. The folders
+
+| Path                   | What it holds                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `preset.lua`           | The tool: its name, its plugins, its settings and keys, and where panels go.    |
+| `plugins/notes/`       | A plugin in Lua: `manifest.lua` and `init.lua`.                                 |
+| `plugins/pulse_c/`     | A plugin in C: `manifest.lua` and `Pulse.c`, which `build.sh` builds.           |
+| `test.lua`             | A test of the tool (14).                                                        |
+| `build.sh`             | Builds the plugins in C.                                                        |
+| `.luarc.json`          | Tells your editor where OpenECS's definitions are (13).                         |
+| `.github/`             | Checks that run on each pull request, and the rules of the repository's branches. |
+
+## 4. The preset
+
+A preset is a Lua file that returns a table. OpenECS reads it as data: it can use Lua's loops and conditions, but not call plugins.
+
+- `format`, `name`, `version`, `app`, `depends` and `workspaces` are required. OpenECS checks every field when it reads the file; a missing, unknown or wrong field stops the start, and the message names the field, such as `workspaces[1].windows[1][2].size`.
+- `app.id` names the tool everywhere: its saved session, its part of the user's settings file, and its desktop file. Use a reversed domain, such as `org.example.MyTool`. `app.name` is the window's title.
+- `depends` names each plugin and the lowest version it accepts: `"0.1"` accepts 0.1.0 and later, below 1.0.0.
+- `pluginsDir` is a folder, relative to the preset, where plugins are looked for first. Then OpenECS looks in the user's plugins and its own.
+- `settings` sets settings for this tool, and `keys` adds keys (9).
+- `workspaces` is a list of named arrangements of panels. Each holds `windows`, one layout tree for each OS window: the main window first, then any pop-out windows. A tree's node is either a group, `{ panels = { ... } }`, whose panels are tabs, or a split, `{ split = "horizontal", child, child }`. A split's child has a `share` of the room, or a fixed `size` in layout units.
+- `open` names a function that gets each file of the command line, such as `openecs/OpenECS --preset preset.lua notes.txt`.
+
+## 5. A plugin
+
+A plugin is a folder with a manifest and its code. `plugins/notes/manifest.lua`:
+
+- `name` is the folder's name. `version` is the plugin's own, and `api` the version of OpenECS's plugin interface it was written for.
+- `type` is `"lua"`, for code that starts in `init.lua`, or `"native"`, for a library `lib<name>.so` built from C (12).
+- `depends` names the plugins it uses. They load first.
+
+`init.lua` runs once, when OpenECS loads the plugin. It registers everything the plugin offers then: panel types, settings, functions and events.
+
+**Names.** What a plugin declares, it names by a local name, and OpenECS adds the plugin's name: the panel type `"board"` of the plugin `notes` is `notes.board`. Everything that names something, perhaps of another plugin, takes the full name: presets, key bindings, lookups and events.
+
+## 6. Panels
+
+A panel type is a table of functions that OpenECS calls; each panel of the type has its own state, the value `create` gives:
+
+| Function                        | OpenECS calls it                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `create(panel, saved, version)` | When a panel opens. `saved` is what `saveState` gave in the saved session, or nil.          |
+| `draw(state, surface, seconds)` | When the panel is shown, resized, or asked with `panel:redraw()`.                           |
+| `event(state, event)`           | For each pointer, key, text, focus or drop event of the panel.                              |
+| `saveState(state)`              | When the session is saved.                                                                  |
+| `destroy(state)`                | When the panel closes.                                                                      |
+
+- A panel type with `continuous = true` draws every frame while it shows, for animation.
+- A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, `panel:startTimer(...)`, `panel:setTextInput(...)`, `panel:openPopup(...)`.
+
+## 7. Drawing
+
+A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are in layout units, which follow the screen's scale; `surface.width / surface.scale` is the panel's width in layout units.
+
+- `surface:fill(x, y, width, height, color)` fills pixels. Colours are texts: `"#RRGGBB"`, `"#RRGGBBAA"`, or a colour of the theme, such as `"background"`, `"text"` or `"accent"`, which follow the dark or light theme.
+- The **draw** plugin draws shapes, images and text: `draw.fill`, `draw.line`, `draw.circle`, `draw.text(surface, draw.font("ui"), text, x, y, size, color)` and more.
+- The **ui** plugin builds interfaces on draw. The board describes its elements each time it draws, and `ui.show` lays them out and draws them; `ui.event` gives the board's events to them. Its elements: columns, rows, groups, scroll areas, lists, separators, text, buttons, toggles, sliders, selectors, dropdowns, fields, key fields and images.
+- Plugins that read files give draw what to draw: **image** reads images, and **gltf** 3D models.
+
+[OpenECS-std's design](https://github.com/omerfuyar/OpenECS-std/blob/dev/DESIGN.md) describes every standard plugin.
+
+## 8. Settings
+
+- `ecs.settings.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
+- `ecs.settings.get("notes.newestFirst")` gives the value in effect. It comes from the user's settings file, `~/.config/openecs/settings.lua`, then the preset's `settings`, then the theme, then the default.
+- The settings window lists every setting with its description, and writes the user's file. `changed` runs when the value in effect changes, wherever the change comes from.
+
+## 9. Functions and keys
+
+- `ecs.service.register({ remove = { sig = "void(handle<ecs.panel> panel)", doc = "...", fn = fn } })` registers `notes.remove`. The signature tells how values pass between Lua and C, so plugins in either language call it.
+- `ecs.input.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
+- `ecs.panel.addMenuEntry("notes.board", "notes.remove")` adds it to the board's right-click menu, with its key.
+- The preset's `keys` and the user's settings file add keys and change them: `keys = { ["notes.board"] = { ["Ctrl+D"] = "notes.remove" } }`. A key under `prefix` runs after Alt+W.
+- Another plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`.
+
+## 10. Saved state
+
+- A panel's `saveState` gives a Lua value of plain data, which the session keeps; `create` gets it back with the `stateVersion` it was saved with, so a newer plugin can read an older state or leave it.
+- A plugin's own state, apart from its panels, is `ecs.plugin.register({ stateVersion = 1, saveState = fn, restoreState = fn, destroy = fn })`. `destroy` runs before the program exits.
+- Alt+W, then S saves the session to a file; the launcher lists saved sessions.
+
+## 11. Events and timers
+
+- `ecs.timer.start(seconds, repeat, fn)` runs a function later, or again and again; `panel:startTimer` makes one that stops when the panel closes.
+- `ecs.event.declare("added", description)` declares `notes.added`; `ecs.event.emit("notes.added", value)` sends it, and any plugin can `ecs.event.subscribe("notes.added", fn)`. OpenECS sends its own, such as `ecs.panelOpened` and `ecs.focusChanged`.
+
+## 12. A plugin in C
+
+`plugins/pulse_c/Pulse.c` is a panel type in C. `build.sh` builds each plugin folder with C files into `lib<name>.so`.
+
+- A native plugin defines `ECSPlugin_Init(plugin)`, which registers everything, as `init.lua` does. `OpenECS.h` documents every function, and names each one's Lua counterpart.
+- `draw.h`, in OpenECS's `include/`, has the functions of draw: `DrawFunctions_Get(plugin, &draw)` looks them all up, with their signatures. OpenECS writes such a header for any plugin: `openecs/OpenECS --definitions defs/` writes them for every plugin it finds.
+- A C plugin's memory is its own; free it in the panel's `Destroy`, and in the plugin's `Destroy` (`ECSPlugin_Register`).
+- C and Lua plugins work together through functions, events and handles, whatever language each is in.
+
+## 13. Your editor
+
+- `.luarc.json` names `openecs/include/`, so the Lua language server knows the `ecs` module, and the functions of the standard plugins: `require("ui")` completes and checks.
+- `---@type ecs.Preset` above a preset's `return`, and `---@type ecs.Manifest` above a manifest's, complete and check their fields.
+- For functions of plugins that are not standard, write their definitions with `--definitions` and add the folder to `workspace.library`.
+
+## 14. Tests
+
+- `test.lua` runs the tool, sends input as a user would, and checks the session: `OpenECS --test test.lua`. Release builds of OpenECS do not run tests; a Debug build does, which you build from [OpenECS's source](https://github.com/omerfuyar/OpenECS#building).
+- A test returns `preset` and `run(test)`. `test.click`, `test.key` and `test.text` send input; `test.session()` gives the session as a table, and `test.match(actual, expected)` compares the fields it names. [OpenECS's design, section 17.5](https://github.com/omerfuyar/OpenECS/blob/dev/DESIGN.md), lists every function.
+- This repository's checks build OpenECS's Debug build and run the test on each pull request.
+
+## 15. Shipping your tool
+
+- **Name it.** Change `name`, `app.id` and `app.name` in `preset.lua`, rename the plugins and their folders, and change the names they declare.
+- **Install it.** Copy the plugins' folders, with the built `.so` files, into `~/.local/share/openecs/plugins/`, and the preset into `~/.config/openecs/presets/`. Then `OpenECS --preset mytool` starts it by name, and the launcher lists it.
+- **Add it to the desktop.** A desktop file in `~/.local/share/applications/`, named after `app.id`, puts it in the system's launcher:
+
+  ``` ini
+  [Desktop Entry]
+  Type=Application
+  Name=My tool
+  Exec=/path/to/openecs/OpenECS --preset mytool %F
+  ```
+
+## 16. Where to go next
+
+- [OpenECS-examples](https://github.com/omerfuyar/OpenECS-examples): one example for each part of OpenECS and each standard plugin, in the order to read them.
+- [OpenECS's design](https://github.com/omerfuyar/OpenECS/blob/dev/DESIGN.md): how everything works, in detail.
+- [OpenECS's Discussions](https://github.com/omerfuyar/OpenECS/discussions): questions, and the tools you build.

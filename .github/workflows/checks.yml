@@ -1,0 +1,92 @@
+name: Checks
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-linux:
+    name: Test (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # the template follows OpenECS's dev: its Debug build runs tests, which releases do not
+      - uses: actions/checkout@v4
+        with:
+          repository: omerfuyar/OpenECS
+          ref: dev
+          submodules: recursive
+          path: OpenECS
+
+      - name: Install the build tools
+        run: OpenECS/.github/scripts/install-linux.sh
+
+      - name: Name the dependencies' versions
+        id: dependencies
+        working-directory: OpenECS
+        run: echo "key=$( (git submodule status --recursive; sha256sum shuild.c dependencies/other/*/*) | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the built dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            OpenECS/build/Debug/lib
+            OpenECS/build/Debug/include
+          key: debug-linux-${{ steps.dependencies.outputs.key }}
+
+      - name: Build OpenECS
+        working-directory: OpenECS
+        run: |
+          gcc shuild.c -o shuild.ignore -O3 -Wno-format-truncation
+          ./shuild.ignore -b debug > build.log 2>&1 || true
+          test -x build/Debug/bin/OpenECS || (tail -n 40 build.log && exit 1)
+
+      # the plugin interface and the standard plugins' definitions, laid out as a release's include/ is
+      - name: Lay out OpenECS as a release
+        run: |
+          mkdir -p openecs
+          cp -r OpenECS/build/Debug/bin/. openecs/
+          mkdir -p openecs/include
+          cp -r OpenECS/build/Debug/include/OpenECS.h OpenECS/build/Debug/include/ecs.lua OpenECS/build/Debug/include/shu openecs/include/
+          cp OpenECS/build/Debug/definitions/* openecs/include/
+
+      - name: Build the plugins in C
+        run: ./build.sh
+
+      - name: Run the test
+        run: |
+          openecs/OpenECS --test test.lua > test.log 2>&1 && ! grep -q -E 'Sanitizer|runtime error:' test.log || (cat test.log && exit 1)
+          grep "The test" test.log
+
+  lua:
+    name: Lua (LuaLS)
+    runs-on: ubuntu-24.04
+    env:
+      LUALS_VERSION: 3.15.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: omerfuyar/OpenECS
+          ref: dev
+          path: openecs-source
+
+      - name: Install the Lua language server
+        run: |
+          mkdir -p "$RUNNER_TEMP/luals"
+          curl -sSL "https://github.com/LuaLS/lua-language-server/releases/download/$LUALS_VERSION/lua-language-server-$LUALS_VERSION-linux-x64.tar.gz" | tar -xz -C "$RUNNER_TEMP/luals"
+
+      # ecs.lua describes the ecs module, so the check finds Lua code that misuses it
+      - name: Check the Lua files
+        run: |
+          mkdir -p openecs && mv openecs-source/include openecs/include && rm -rf openecs-source
+          "$RUNNER_TEMP/luals/bin/lua-language-server" --check="$GITHUB_WORKSPACE" --checklevel=Warning --logpath="$RUNNER_TEMP/luals-log" | tee luals.log
+          grep -q "no problems found" luals.log
