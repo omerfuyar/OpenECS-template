@@ -47,6 +47,9 @@
             "context": "Test (Linux)"
           },
           {
+            "context": "Test (Windows)"
+          },
+          {
             "context": "Lua (LuaLS)"
           }
         ]
