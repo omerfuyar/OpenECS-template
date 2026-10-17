@@ -24,7 +24,7 @@ This guide goes through the template, one part at a time, and ends with what you
 ## 1. What you need
 
 - **OpenECS.** Download the archive from [OpenECS's releases](https://github.com/omerfuyar/OpenECS/releases) and unpack it into a folder named `openecs/` in this repository. Git ignores that folder. To keep OpenECS elsewhere, set `OPENECS` to its folder for `build.sh`, and change the path in `.luarc.json`.
-- **gcc 14 or later**, for plugins in C. Lua plugins need nothing else.
+- **A C compiler**, for plugins in C: gcc 14 or later on Linux, and on Windows [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw) with the UCRT runtime, which OpenECS is built with, run from Git Bash. `CC` names another one. Lua plugins need nothing else.
 - **An editor with the Lua language server**, such as VS Code with the Lua extension, for completion and checks (13).
 
 ## 2. Run the tool
@@ -77,7 +77,7 @@ A preset is a Lua file that returns a table. OpenECS reads it as data: it can us
 A plugin is a folder with a manifest and its code. `plugins/notes/manifest.lua`:
 
 - `name` is the folder's name. `version` is the plugin's own, and `api` the version of OpenECS's plugin interface it was written for.
-- `type` is `"lua"`, for code that starts in `init.lua`, or `"native"`, for a library `lib<name>.so` built from C (12).
+- `type` is `"lua"`, for code that starts in `init.lua`, or `"native"`, for a library built from C: `lib<name>.so` on Linux, and `<name>.dll` on Windows (12).
 - `depends` names the plugins it uses. They load first.
 
 `init.lua` runs once, when OpenECS loads the plugin. It registers everything the plugin offers then: panel types, settings, functions and events.
@@ -137,7 +137,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 
 ## 12. A plugin in C
 
-`plugins/pulse_c/Pulse.c` is a panel type in C. `build.sh` builds each plugin folder with C files into `lib<name>.so`.
+`plugins/pulse_c/Pulse.c` is a panel type in C. `build.sh` builds each plugin folder with C files into `lib<name>.so`, or `<name>.dll` on Windows. On Windows a DLL links the import libraries in the release's `lib/`, through which it calls OpenECS, and SDL for a plugin that uses it.
 
 - A native plugin defines `ECSPlugin_Init(plugin)`, which registers everything, as `init.lua` does. `OpenECS.h` documents every function, and names each one's Lua counterpart.
 - `draw.h`, in OpenECS's `include/`, has the functions of draw: `DrawFunctions_Get(plugin, &draw)` looks them all up, with their signatures. OpenECS writes such a header for any plugin: `openecs/OpenECS --definitions defs/` writes them for every plugin it finds.
@@ -159,7 +159,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 ## 15. Shipping your tool
 
 - **Name it.** Change `name`, `app.id` and `app.name` in `preset.lua`, rename the plugins and their folders, and change the names they declare.
-- **Install it.** Copy the plugins' folders, with the built `.so` files, into `~/.local/share/openecs/plugins/`, and the preset into `~/.config/openecs/presets/`. Then `OpenECS --preset mytool` starts it by name, and the launcher lists it.
+- **Install it.** Copy the plugins' folders, with the built libraries, into `~/.local/share/openecs/plugins/`, and the preset into `~/.config/openecs/presets/`. On Windows, both go into `%APPDATA%\openecs\`: `plugins\` and `presets\`. Then `OpenECS --preset mytool` starts it by name, and the launcher lists it.
 - **Add it to the desktop.** A desktop file in `~/.local/share/applications/`, named after `app.id`, puts it in the system's launcher:
 
   ``` ini
@@ -168,6 +168,8 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
   Name=My tool
   Exec=/path/to/openecs/OpenECS --preset mytool %F
   ```
+
+  On Windows, a shortcut to `OpenECS.exe` with the arguments `--preset mytool` does the same.
 
 ## 16. Where to go next
 

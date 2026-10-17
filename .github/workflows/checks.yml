@@ -65,6 +65,65 @@ jobs:
           openecs/OpenECS --test test.lua > test.log 2>&1 && ! grep -q -E 'Sanitizer|runtime error:' test.log || (cat test.log && exit 1)
           grep "The test" test.log
 
+  test-windows:
+    name: Test (Windows)
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: omerfuyar/OpenECS
+          ref: dev
+          submodules: recursive
+          path: OpenECS
+
+      # LLVM-MinGW with the UCRT runtime, which OpenECS is built with, and CMake and Ninja for SDL
+      - name: Install the build tools
+        shell: pwsh
+        run: OpenECS/.github/scripts/install-windows.ps1
+
+      - name: Name the dependencies' versions
+        id: dependencies
+        working-directory: OpenECS
+        run: echo "key=$( (git submodule status --recursive; sha256sum shuild.c dependencies/other/*/*) | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the built dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            OpenECS/build/Debug/lib
+            OpenECS/build/Debug/include
+            OpenECS/build/Debug/bin/*.dll
+          key: debug-windows-${{ steps.dependencies.outputs.key }}
+
+      - name: Build OpenECS
+        working-directory: OpenECS
+        run: |
+          clang shuild.c -o shuild.ignore.exe -O3 -Wno-format-truncation
+          ./shuild.ignore.exe -b debug -c clang > build.log 2>&1 || true
+          test -f build/Debug/bin/OpenECS.exe || (tail -n 40 build.log && exit 1)
+
+      # as a release is laid out, with the import libraries that a plugin's DLL links in lib/
+      - name: Lay out OpenECS as a release
+        run: |
+          mkdir -p openecs/include openecs/lib
+          cp -r OpenECS/build/Debug/bin/. openecs/
+          cp -r OpenECS/build/Debug/include/OpenECS.h OpenECS/build/Debug/include/ecs.lua OpenECS/build/Debug/include/shu openecs/include/
+          cp OpenECS/build/Debug/definitions/* openecs/include/
+          cp OpenECS/build/Debug/lib/libOpenECS.a OpenECS/build/Debug/lib/libSDL3.dll.a OpenECS/build/Debug/lib/libSDL3_ttf.dll.a openecs/lib/
+
+      - name: Build the plugins in C
+        run: ./build.sh
+
+      - name: Run the test
+        run: |
+          openecs/OpenECS.exe --test test.lua > test.log 2>&1 || (cat test.log && exit 1)
+          grep "The test" test.log
+
   lua:
     name: Lua (LuaLS)
     runs-on: ubuntu-24.04

@@ -17,3 +17,4 @@ dist/
 # the release of OpenECS, unpacked here, and the plugins build.sh makes
 openecs/
 *.so
+*.dll
