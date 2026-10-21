@@ -10,9 +10,3 @@ OpenECS/OpenECS --fresh --preset preset.lua
 ```
 
 [GUIDE.md](GUIDE.md) explains the preset, plugins, panels, drawing, settings, keys, saved state, plugins in C, your editor's setup, tests, and how to ship your tool.
-
-## Documents
-
-- [GUIDE.md](GUIDE.md): how to make a tool from this template.
-- [AGENTS.md](AGENTS.md): instructions for AI agents working in this repository.
-- [LICENSE.md](LICENSE.md): the license, zlib.
