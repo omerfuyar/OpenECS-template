@@ -9,4 +9,4 @@ The tool is a board of notes beside a small panel in C. Unpack an [OpenECS relea
 OpenECS/OpenECS --fresh --preset preset.lua
 ```
 
-[GUIDE.md](GUIDE.md) explains the preset, plugins, panels, drawing, settings, keys, saved state, plugins in C, your editor's setup, tests, and how to ship your tool.
+[GUIDE.md](GUIDE.md) explains the preset, plugins, panels, etc. and how to ship your tool.

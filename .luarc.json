@@ -1,3 +1,5 @@
 {
-  "workspace.library": ["openecs/include"]
+  "workspace.library": [
+    "OpenECS/include"
+  ]
 }
