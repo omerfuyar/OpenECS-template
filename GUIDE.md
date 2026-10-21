@@ -15,7 +15,7 @@ This guide goes through the template, one part at a time, and ends with what you
 OpenECS/OpenECS --fresh --preset preset.lua
 ```
 
-`--fresh` starts from the preset each time. Without it, a tool starts from its last saved session. It can be saved manually or automatically if the setting `ecs.keepSession` is on.
+`--fresh` starts from the preset each time. Without it, a tool starts from its last saved session. It can be saved manually by the user or automatically if the setting `ecs.keepSession` is on.
 
 Type a note and press Return, or Add. Click a note to choose it; Delete or Remove takes it away. Drag a tab to move a panel: beside another, into its tab row, or out of the window.
 
