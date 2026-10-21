@@ -6,7 +6,7 @@ This guide goes through the template, one part at a time, and ends with what you
 
 1. What you need
 2. Run the tool
-3. The folders
+3. Project structure
 4. The preset
 5. A plugin
 6. Panels
@@ -38,27 +38,19 @@ openecs/OpenECS --fresh --preset preset.lua
 
 Type a note and press Return, or Add. Click a note to choose it; Delete or Remove takes it away. Drag a tab to move a panel: beside another, into its tab row, or out of the window.
 
-Every key of OpenECS starts with Alt+W. Press it to see the list:
+Every key of OpenECS starts with Alt+W by default. Press it to see the list.
 
-| After Alt+W | Does                                          |
-| ----------- | --------------------------------------------- |
-| `,`         | Opens the settings window.                    |
-| N           | Lists the panel types of the tool, to open one. |
-| Shift+R     | Resets the layout to the preset's.            |
-| Q           | Quits.                                        |
-| Arrows      | Move the focus between panels.                |
+## 3. Project structure
 
-## 3. The folders
-
-| Path                   | What it holds                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| `preset.lua`           | The tool: its name, its plugins, its settings and keys, and where panels go.    |
-| `plugins/notes/`       | A plugin in Lua: `manifest.lua` and `init.lua`.                                 |
-| `plugins/pulse_c/`     | A plugin in C: `manifest.lua` and `Pulse.c`, which `build.sh` builds.           |
-| `test.lua`             | A test of the tool (14).                                                        |
-| `build.sh`             | Builds the plugins in C.                                                        |
-| `.luarc.json`          | Tells your editor where OpenECS's definitions are (13).                         |
-| `.github/`             | Checks that run on each pull request, and the rules of the repository's branches. |
+| Path               | What it holds                                                                     |
+| ------------------ | --------------------------------------------------------------------------------- |
+| `preset.lua`       | The tool: its name, its plugins, its settings and keys, and where panels go.      |
+| `plugins/notes/`   | A plugin in Lua: `manifest.lua` and `init.lua`.                                   |
+| `plugins/pulse_c/` | A plugin in C: `manifest.lua` and `Pulse.c`, which `build.sh` builds.             |
+| `test.lua`         | A test of the tool (14).                                                          |
+| `build.sh`         | Builds the plugins in C.                                                          |
+| `.luarc.json`      | Tells your editor where OpenECS's definitions are (13).                           |
+| `.github/`         | Checks that run on each pull request, and the rules of the repository's branches. |
 
 ## 4. The preset
 
@@ -88,13 +80,13 @@ A plugin is a folder with a manifest and its code. `plugins/notes/manifest.lua`:
 
 A panel type is a table of functions that OpenECS calls; each panel of the type has its own state, the value `create` gives:
 
-| Function                        | OpenECS calls it                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------- |
-| `create(panel, saved, version)` | When a panel opens. `saved` is what `saveState` gave in the saved session, or nil.          |
-| `draw(state, surface, seconds)` | When the panel is shown, resized, or asked with `panel:redraw()`.                           |
-| `event(state, event)`           | For each pointer, key, text, focus or drop event of the panel.                              |
-| `saveState(state)`              | When the session is saved.                                                                  |
-| `destroy(state)`                | When the panel closes.                                                                      |
+| Function                        | OpenECS calls it                                                                   |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| `create(panel, saved, version)` | When a panel opens. `saved` is what `saveState` gave in the saved session, or nil. |
+| `draw(state, surface, seconds)` | When the panel is shown, resized, or asked with `panel:redraw()`.                  |
+| `event(state, event)`           | For each pointer, key, text, focus or drop event of the panel.                     |
+| `saveState(state)`              | When the session is saved.                                                         |
+| `destroy(state)`                | When the panel closes.                                                             |
 
 - A panel type with `continuous = true` draws every frame while it shows, for animation.
 - A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, `panel:startTimer(...)`, `panel:setTextInput(...)`, `panel:openPopup(...)`.
