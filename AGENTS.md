@@ -8,19 +8,19 @@ A tool made from this template is its owner's own repository; its owner may keep
 
 ## Where things are
 
-| Path                   | What it holds                                                                                        |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| [README.md](README.md) | Short introduction, and how to run the tool.                                                         |
-| [GUIDE.md](GUIDE.md)   | The guide: how to make a tool from the template, one part at a time.                                 |
-| `preset.lua`           | The tool's preset.                                                                                   |
-| `plugins/`             | The tool's plugins, one folder each.                                                                 |
-| `test.lua`             | The tool's test.                                                                                     |
-| `build.sh`             | Builds the plugins in C.                                                                             |
-| `.github/`             | Checks, rulesets and the agents' check script.                                                       |
-| `.clang-format`        | How clang-format formats the C code, as OpenECS's does.                                              |
-| `.clang-tidy`          | What clang-tidy checks in the C code: OpenECS-std's names for a plugin's functions, and common bugs. |
-| `.claude/`             | Claude Code's settings: it formats each C file it edits.                                             |
-| `LICENSE.md`           | The license, zlib.                                                                                   |
+| Path                   | What it holds                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [README.md](README.md) | Short introduction, and how to run the tool.                                                                             |
+| [GUIDE.md](GUIDE.md)   | The guide: how to make a tool from the template, one part at a time.                                                     |
+| `preset.lua`           | The tool's preset.                                                                                                       |
+| `plugins/`             | The tool's plugins, one folder each.                                                                                     |
+| `test.lua`             | The tool's test.                                                                                                         |
+| `build.sh`             | Builds the plugins in C.                                                                                                 |
+| `.github/`             | Checks, rulesets and the agents' check script.                                                                           |
+| `.clang-format`        | How clang-format formats the C code, as OpenECS's does.                                                                  |
+| `.clang-tidy`          | What clang-tidy checks in the C code: OpenECS-std's names for a plugin's functions, and common bugs.                     |
+| `.claude/`             | Claude Code's settings and notes: it formats each C file it edits; `notes.md` says why the tools are set up as they are. |
+| `LICENSE.md`           | The license, zlib.                                                                                                       |
 
 OpenECS's OVERVIEW.md and DESIGN.md hold how OpenECS works. Before you propose or change anything, read their Contents, then every section the task touches.
 
