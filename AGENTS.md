@@ -15,7 +15,8 @@ A tool made from this template is its owner's own repository; its owner may keep
 | `preset.lua`           | The tool's preset.                                                         |
 | `plugins/`             | The tool's plugins, one folder each.                                       |
 | `test.lua`             | The tool's test.                                                           |
-| `build.sh`             | Builds the plugins in C.                                                   |
+| `shuild.c`             | Builds the plugins in C, with shuild.                                      |
+| `dependencies/`        | Submodules: shuild and shu, which `shuild.c` builds with.                  |
 | `.github/`             | Checks and rulesets.                                                       |
 | `LICENSE.md`           | The license, zlib.                                                         |
 

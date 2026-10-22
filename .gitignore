@@ -4,7 +4,7 @@
 ignore/
 ignore.*
 *.ignore
-shuild
+/shuild
 *.pdb
 build/
 *.o
@@ -14,7 +14,8 @@ build/
 *.log
 dist/
 
-# the release of OpenECS, unpacked here, and the plugins build.sh makes
+# the release of OpenECS, unpacked here, and the plugins shuild makes, with a DLL's import library on Windows
 OpenECS/
 *.so
 *.dll
+*.a
