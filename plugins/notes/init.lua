@@ -11,7 +11,7 @@ local boards = {} -- every open board, by its panel handle
 
 -- a setting: the settings window (Alt+W, then ",") lists it, and the user's settings file can change it
 -- the name is local: OpenECS declares it as "notes.newestFirst"
-ecs.settings.declare({
+ecs.setting.declare({
   name = "newestFirst",
   type = "bool",
   description = "Show the newest note at the top of the board",
@@ -31,7 +31,7 @@ local function shown(board)
     list[#list + 1] = { index = i, text = note }
   end
 
-  if ecs.settings.get("notes.newestFirst") then
+  if ecs.setting.get("notes.newestFirst") then
     table.sort(list, function(a, b)
       return a.index > b.index
     end)
@@ -141,5 +141,5 @@ assert(ecs.service.register({
 }))
 
 -- Delete runs it while a board has the focus; presets and the user's settings can change the key
-assert(ecs.input.bind("notes.board", "Delete", "notes.remove"))
+assert(ecs.key.bind("notes.board", "Delete", "notes.remove"))
 assert(ecs.panel.addMenuEntry("notes.board", "notes.remove"))

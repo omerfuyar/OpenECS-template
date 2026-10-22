@@ -70,7 +70,7 @@ A panel type is a table of functions that OpenECS calls; each panel of the type 
 | `destroy(state)`                | When the panel closes.                                                             |
 
 - A panel type with `continuous = true` draws every frame while it shows, for animation.
-- A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, `panel:startTimer(...)`, `panel:setTextInput(...)`, `panel:openPopup(...)`.
+- A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, `panel:setTextInput(...)`, `panel:openPopup(...)`.
 
 ## 7. Drawing
 
@@ -85,14 +85,14 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 
 ## 8. Settings
 
-- `ecs.settings.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
-- `ecs.settings.get("notes.newestFirst")` gives the value in effect. It comes from the user's settings file, `~/.config/OpenECS/settings.lua`, then the preset's `settings`, then the theme, then the default.
+- `ecs.setting.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
+- `ecs.setting.get("notes.newestFirst")` gives the value in effect. It comes from the user's settings file, `~/.config/OpenECS/settings.lua`, then the preset's `settings`, then the theme, then the default.
 - The settings window lists every setting with its description, and writes the user's file. `changed` runs when the value in effect changes, wherever the change comes from.
 
 ## 9. Functions and keys
 
 - `ecs.service.register({ remove = { sig = "void(handle<ecs.panel> panel)", doc = "...", fn = fn } })` registers `notes.remove`. The signature tells how values pass between Lua and C, so plugins in either language call it.
-- `ecs.input.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
+- `ecs.key.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
 - `ecs.panel.addMenuEntry("notes.board", "notes.remove")` adds it to the board's right-click menu, with its key.
 - The preset's `keys` and the user's settings file add keys and change them: `keys = { ["notes.board"] = { ["Ctrl+D"] = "notes.remove" } }`. A key under `prefix` runs after Alt+W.
 - Another plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`.
@@ -105,7 +105,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 
 ## 11. Events and timers
 
-- `ecs.timer.start(seconds, repeat, fn)` runs a function later, or again and again; `panel:startTimer` makes one that stops when the panel closes.
+- `ecs.timer.start(seconds, repeats, callback)` runs a function later, or again and again. A panel stops its timers in `destroy`.
 - `ecs.event.declare("added", description)` declares `notes.added`; `ecs.event.emit("notes.added", value)` sends it, and any plugin can `ecs.event.subscribe("notes.added", fn)`. OpenECS sends its own, such as `ecs.panelOpened` and `ecs.focusChanged`.
 
 ## 12. A plugin in C

@@ -44,15 +44,17 @@ static SHUResult PulseCreate(ECSPanel panel, const ECSValue *savedState, u32 ver
 
     pulse->panel = panel;
 
-    // a panel's timer stops when the panel closes
-    SHU_ReturnResult(ECSPanel_StartTimer(panel, &pulse->timer, 1.0, true, PulseTick, pulse), free(pulse););
+    // the timer belongs to the plugin, so the panel stops it when it closes
+    SHU_ReturnResult(ECSTimer_Start(PULSE.plugin, &pulse->timer, 1.0, true, PulseTick, pulse), free(pulse););
     *retState = pulse;
     return SHUResult_Ok;
 }
 
 static void PulseDestroy(void *state)
 {
-    free(state);
+    PulsePanel *pulse = state;
+    ECSTimer_Stop(&pulse->timer);
+    free(pulse);
 }
 
 // positions and sizes are in layout units, which draw turns into the surface's pixels
