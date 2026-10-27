@@ -111,12 +111,12 @@ static void BuildPlugin(const char *path, SHUFileType type, void *data)
         // the plugin sees only OpenECS's plugin interface, and the headers of the standard plugins beside it, such as draw.h
         SHU_ModuleAddIncludeDirectories(SHU_UtilFormat("%sinclude/", CONFIG.openecs));
 
-        // a DLL cannot leave OpenECS's functions to be found when it is loaded, so it links OpenECS's import library, and SDL's for a plugin that calls SDL;
-        // the release has them in lib/. Elsewhere OpenECS's functions are found when the library is loaded, in the program that loads it
+        // a DLL cannot leave OpenECS's functions to be found when it is loaded, so it links OpenECS's import library, which the release has in lib/.
+        // Elsewhere OpenECS's functions are found when the library is loaded, in the program that loads it
         if (SHU_CompilerGetTarget() == SHUPlatform_Windows)
         {
             SHU_ModuleAddLibraryDirectories(SHU_UtilFormat("%slib/", CONFIG.openecs));
-            SHU_ModuleLinkLibraries("OpenECS", "SDL3", "SDL3_ttf");
+            SHU_ModuleLinkLibraries("OpenECS");
         }
     }
 }
