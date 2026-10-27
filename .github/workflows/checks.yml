@@ -60,8 +60,7 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: |
-                      OpenECS/build/Debug/lib
-                      OpenECS/build/Debug/include
+                      OpenECS/.shu/Debug/dependencies
                   key: debug-linux-${{ steps.dependencies.outputs.key }}
 
             - name: Build OpenECS
@@ -71,14 +70,11 @@ jobs:
                   ./shuild.ignore -b debug > build.log 2>&1 || true
                   test -x build/Debug/bin/OpenECS || (tail -n 40 build.log && exit 1)
 
-            # the plugin interface and the standard plugins' definitions, laid out as a release's include/ is
+            # the program writes include/ as a release has it: the plugin interface and the standard plugins' definitions
             - name: Lay out OpenECS as a release
               run: |
-                  mkdir -p OpenECS
                   cp -r OpenECS/build/Debug/bin/. OpenECS/
-                  mkdir -p OpenECS/include
-                  cp -r OpenECS/build/Debug/include/OpenECS.h OpenECS/build/Debug/include/ecs.lua OpenECS/build/Debug/include/shu OpenECS/include/
-                  cp OpenECS/build/Debug/definitions/* OpenECS/include/
+                  OpenECS/OpenECS --definitions OpenECS/include > definitions.log 2>&1 || (cat definitions.log && exit 1)
 
             - name: Build the plugins in C
               run: cc shuild.c -o shuild && ./shuild
@@ -120,9 +116,7 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: |
-                      OpenECS/build/Debug/lib
-                      OpenECS/build/Debug/include
-                      OpenECS/build/Debug/bin/*.dll
+                      OpenECS/.shu/Debug/dependencies
                   key: debug-windows-${{ steps.dependencies.outputs.key }}
 
             - name: Build OpenECS
@@ -132,14 +126,12 @@ jobs:
                   ./shuild.ignore.exe -b debug -c clang > build.log 2>&1 || true
                   test -f build/Debug/bin/OpenECS.exe || (tail -n 40 build.log && exit 1)
 
-            # as a release is laid out, with the import libraries that a plugin's DLL links in lib/
+            # as a release is laid out: the program writes include/, and lib/ has OpenECS's import library that a plugin's DLL links
             - name: Lay out OpenECS as a release
               run: |
-                  mkdir -p OpenECS/include OpenECS/lib
                   cp -r OpenECS/build/Debug/bin/. OpenECS/
-                  cp -r OpenECS/build/Debug/include/OpenECS.h OpenECS/build/Debug/include/ecs.lua OpenECS/build/Debug/include/shu OpenECS/include/
-                  cp OpenECS/build/Debug/definitions/* OpenECS/include/
-                  cp OpenECS/build/Debug/lib/libOpenECS.a OpenECS/build/Debug/lib/libSDL3.dll.a OpenECS/build/Debug/lib/libSDL3_ttf.dll.a OpenECS/lib/
+                  cp -r OpenECS/build/Debug/lib OpenECS/
+                  OpenECS/OpenECS.exe --definitions OpenECS/include > definitions.log 2>&1 || (cat definitions.log && exit 1)
 
             - name: Build the plugins in C
               run: clang shuild.c -o shuild.exe && ./shuild.exe
