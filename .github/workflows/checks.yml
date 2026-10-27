@@ -30,7 +30,10 @@ jobs:
         name: Test (Linux)
         runs-on: ubuntu-24.04
         steps:
+            # shuild and shu, which build the plugins in C, are submodules
             - uses: actions/checkout@v4
+              with:
+                  submodules: true
 
             # the template follows OpenECS's dev: its Debug build runs tests, which releases do not
             - uses: actions/checkout@v4
@@ -73,7 +76,7 @@ jobs:
                   cp OpenECS/build/Debug/definitions/* OpenECS/include/
 
             - name: Build the plugins in C
-              run: ./build.sh
+              run: cc shuild.c -o shuild && ./shuild
 
             - name: Run the test
               run: |
@@ -88,6 +91,8 @@ jobs:
                 shell: bash
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: true
 
             - uses: actions/checkout@v4
               with:
@@ -132,7 +137,7 @@ jobs:
                   cp OpenECS/build/Debug/lib/libOpenECS.a OpenECS/build/Debug/lib/libSDL3.dll.a OpenECS/build/Debug/lib/libSDL3_ttf.dll.a OpenECS/lib/
 
             - name: Build the plugins in C
-              run: ./build.sh
+              run: clang shuild.c -o shuild.exe && ./shuild.exe
 
             - name: Run the test
               run: |

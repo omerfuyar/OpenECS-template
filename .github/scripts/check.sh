@@ -2,7 +2,7 @@
 # Formats the tool's C files with clang-format and checks them with clang-tidy (.clang-format, .clang-tidy), for agents before they commit.
 # With no files named, it takes the C files of plugins/ that differ from dev, committed or not.
 # It prints only the problems, and fails when clang-tidy finds one.
-# OPENECS names the folder of OpenECS's release, whose include/ holds the plugin interface; OpenECS/ if it is not set, as build.sh says.
+# OPENECS names the folder of OpenECS's release, whose include/ holds the plugin interface, as shuild.c's -o does; OpenECS/ if it is not set.
 set -u
 cd "$(dirname "$0")/../.." || exit 2
 
@@ -26,7 +26,7 @@ clang-format -i $files || exit 2
 
 include="${OPENECS:-OpenECS}/include"
 if [ ! -f "$include/OpenECS.h" ]; then
-    echo "clang-tidy needs OpenECS's release: OPENECS names its folder, as build.sh says"
+    echo "clang-tidy needs OpenECS's release: OPENECS names its folder, as shuild.c's -o does"
     exit 2
 fi
 
@@ -37,7 +37,7 @@ for file in $files; do
     *) continue ;;
     esac
 
-    # the flags of build.sh
+    # the flags of shuild.c: C23 and the plugin interface
     if ! clang-tidy --quiet "$file" -- -std=c23 -isystem "$include" > tidy.ignore.log 2>&1; then
         grep -E "(warning|error):" -A3 tidy.ignore.log | grep -v -E "^[0-9]+ warnings? generated"
         failed=1
