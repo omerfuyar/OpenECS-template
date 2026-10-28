@@ -1,8 +1,8 @@
-# AGENTS.md
+# CLAUDE.md
 
 Instructions for AI agents working in this repository. Read this file fully before doing anything.
 
-This repository is the template of OpenECS's tools. OpenECS's [AGENTS.md](https://github.com/omerfuyar/OpenECS/blob/dev/AGENTS.md) applies here in full: how to work with the owner, the boundaries, git and writing documents. Read it first. This file names only what is different here.
+This repository is the template of OpenECS's tools. OpenECS's [CLAUDE.md](https://github.com/omerfuyar/OpenECS/blob/dev/CLAUDE.md) applies here in full: how to work with the owner, the boundaries, git and writing documents. Read it first. This file names only what is different here.
 
 A tool made from this template is its owner's own repository; its owner may keep, change or remove this file.
 
