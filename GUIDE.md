@@ -11,9 +11,12 @@ This guide goes through the template, one part at a time, and ends with what you
 ## 2. Run the tool
 
 ``` shell
-./build.sh                                   # builds the plugin in C
+git submodule update --init                  # gets shu and shuild, which shuild.c uses
+cc shuild.c -o shuild && ./shuild            # builds the plugin in C
 OpenECS/OpenECS --fresh --preset preset.lua
 ```
+
+On Windows, with LLVM-MinGW's clang: `clang shuild.c -o shuild.exe` and `.\shuild.exe`, then `OpenECS\OpenECS.exe --fresh --preset preset.lua`.
 
 `--fresh` starts from the preset each time. Without it, a tool starts from its last saved session. It can be saved manually by the user or automatically if the setting `ecs.keepSession` is on.
 
@@ -27,9 +30,10 @@ Every key of OpenECS starts with Alt+W by default. Press it to see the list.
 | ------------------ | --------------------------------------------------------------------------------- |
 | `preset.lua`       | The tool: its name, its plugins, its settings and keys, and where panels go.      |
 | `plugins/notes/`   | A plugin in Lua: `manifest.lua` and `init.lua`.                                   |
-| `plugins/pulse_c/` | A plugin in C: `manifest.lua` and `Pulse.c`, which `build.sh` builds.             |
+| `plugins/pulse_c/` | A plugin in C: `manifest.lua` and `Pulse.c`, which `shuild.c` builds.             |
 | `test.lua`         | A test of the tool (14).                                                          |
-| `build.sh`         | Builds the plugins in C.                                                          |
+| `shuild.c`         | Builds the plugins in C (12).                                                     |
+| `dependencies/`    | shu and shuild, as git submodules, which `shuild.c` builds with.                  |
 | `.luarc.json`      | Tells your editor where OpenECS's definitions are (13).                           |
 | `.github/`         | Checks that run on each pull request, and the rules of the repository's branches. |
 
@@ -39,7 +43,7 @@ A preset is a Lua file that returns a table. OpenECS reads it as data: it can us
 
 - There are required and optional fields. OpenECS checks every field when it reads the file; a missing, unknown or wrong field stops the start, and the message names the field, such as `workspaces[1].windows[1][2].size`.
 - `app.id` names the tool everywhere: its saved session, its part of the user's settings file, and its desktop file. Use a reversed domain, such as `org.example.MyTool`. `app.name` is the window's title.
-- `depends` names each plugin and the lowest version it accepts: `"0.1"` accepts 0.1.0 and later, below 1.0.0. !!! todo remove such restriction, just make versions linear ???
+- `depends` names each plugin and the lowest version it accepts: `"0.1"` accepts 0.1.0 and later, below 1.0.0.
 - `pluginsDir` is a folder, relative to the preset, where plugins are looked for first. Then OpenECS looks in the user's plugins and its own.
 - `settings` sets settings for this tool, and `keys` adds keys (9).
 - `workspaces` is a list of named arrangements of panels. Each holds `windows`, one layout tree for each OS window: the main window first, then any pop-out windows. A tree's node is either a group, `{ panels = { ... } }`, whose panels are tabs, or a split, `{ split = "horizontal", child, child }`. A split's child has a `share` of the room, or a fixed `size` in layout units.
@@ -86,38 +90,37 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 ## 8. Settings
 
 - `ecs.settings.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
-- `ecs.settings.get("notes.newestFirst")` gives the value in effect. Its decided like this: user's settings file > `~/.config/OpenECS/settings.lua` > preset's `settings` > theme > default. !!! what is theme doing here ???
+- `ecs.settings.get("notes.newestFirst")` gives the value in effect: from the user's settings file, its part for this tool first; else from the preset's `settings`; else the default. Colours have one more layer before the default: the theme, dark or light.
 - The settings window lists every setting with its description, and writes the user's file. `changed` runs when the value in effect changes, wherever the change comes from.
 
 ## 9. Functions and keys
 
 - `ecs.service.register({ remove = { sig = "void(handle<ecs.panel> panel)", doc = "...", fn = fn } })` registers `notes.remove` in this template. The signature tells how values pass between Lua and C, so plugins in either language call it.
 - `ecs.input.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
-- `ecs.panel.addMenuEntry("notes.board", "notes.remove")` adds it to the board's right-click menu, with its key. !!! which signatures are usable with menu entries, what does with its key means ???
+- `ecs.panel.addMenuEntry("notes.board", "notes.remove")` adds it to the board's right-click menu. A menu entry's function takes the panel, `void(handle<ecs.panel> panel)`, or nothing, `void()`. The entry shows the function's description, and the key the plugin bound to it for the board, such as Delete.
 - The preset's `keys` and the user's settings file add keys and change them: `keys = { ["notes.board"] = { ["Ctrl+D"] = "notes.remove" } }`. A key under `prefix` runs after Alt+W.
-- Another lua plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`.
-!!! how to call from C plugin ???
+- Another lua plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`. A C plugin calls it through `notes.h`, the header `--definitions` writes for notes: `NotesFunctions_Get(plugin, &notes)` looks up every function of notes, then `notes.remove(panel)` calls one.
 
 ## 10. Saved state
 
 - A panel's `saveState` gives a Lua value of plain data, which the session keeps; `create` gets it back with the `stateVersion` it was saved with, so a newer plugin can read an older state or leave it.
 - A plugin's own state, apart from its panels, is `ecs.plugin.register({ stateVersion = 1, saveState = fn, restoreState = fn, destroy = fn })`. `destroy` runs before the program exits.
-- Alt+W, then S saves the session to a file; the launcher lists saved sessions. !!! system wide or local ???
+- Alt+W, then S saves the session to a file you choose. The dialog starts in the user's folder of saved sessions, `~/.local/share/OpenECS/sessions/` (`%APPDATA%\OpenECS\sessions\` on Windows), which the launcher lists, for every tool.
 
 ## 11. Events and timers
 
-- `ecs.timer.start(seconds, repeat, fn)` runs a function later, or again and again; `panel:startTimer` makes one that stops when the panel closes. !!! this will change !!!
-- `ecs.event.declare("added", description)` declares `notes.added`; `ecs.event.emit("notes.added", value)` sends it, and any plugin can `ecs.event.subscribe("notes.added", fn)`. OpenECS sends its own, such as `ecs.panelOpened` and `ecs.focusChanged`. !!! with what signature ???
+- `ecs.timer.start(seconds, repeat, fn)` runs a function later, or again and again, and gives a timer whose `stop()` ends it. A panel stops its timers in its type's `destroy`.
+- `ecs.event.declare("added", description)` declares `notes.added`; `ecs.event.emit("notes.added", value)` sends it, and any plugin can `ecs.event.subscribe("notes.added", fn)`, which calls `fn(name, value)`. OpenECS sends its own, such as `ecs.panelOpened` with `{ panel = id, type = name }`; [DESIGN.md 8.4](https://github.com/omerfuyar/OpenECS/blob/dev/DESIGN.md) lists them.
 
 ## 12. A plugin in C
 
-`plugins/pulse_c/Pulse.c` is a panel type in C. `build.sh` builds each plugin folder with C files into `lib<name>.so`, or `<name>.dll` on Windows. On Windows a DLL links the import libraries in the release's `lib/`, through which it calls OpenECS, and SDL for a plugin that uses it.
+`plugins/pulse_c/Pulse.c` is a panel type in C. `shuild.c` builds each plugin folder with C files into `lib<name>.so`, or `<name>.dll` on Windows, and builds again only what changed. On Windows a DLL links OpenECS's import library in the release's `lib/`, through which it calls OpenECS.
 
 - A native plugin defines `ECSPlugin_Init(plugin)`, which registers everything, as `init.lua` does. `OpenECS.h` documents every function, and names each one's Lua counterpart.
-- `draw.h`, in OpenECS's `include/`, has the functions of draw: `DrawFunctions_Get(plugin, &draw)` looks them all up, with their signatures. OpenECS writes such a header for any plugin: `OpenECS/OpenECS --definitions defs/` writes them for every plugin it finds.
+- `draw.h`, in OpenECS's `include/`, has the functions of draw: `DrawFunctions_Get(plugin, &draw)` looks them all up, with their signatures. OpenECS writes such a header for any plugin: `OpenECS/OpenECS --definitions OpenECS/include/` writes the plugin interface and them for every plugin it finds.
 - A C plugin's memory is its own; free it in the panel's `Destroy`, and in the plugin's `Destroy` (`ECSPlugin_Register`).
 - C and Lua plugins work together through functions, events and handles, whatever language each is in.
-!!! also explain how a custom built plugin can do the same !!!
+- A C plugin does the same with `ECSEvent_Declare`, `ECSEvent_Emit`, `ECSEvent_Subscribe` and `ECSTimer_Start`, which `OpenECS.h` documents beside their Lua names.
 
 ## 13. Your editor
 

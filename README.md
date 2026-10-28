@@ -5,7 +5,8 @@ Template of a tool made with [OpenECS](https://github.com/omerfuyar/OpenECS): a 
 The tool is a board of notes beside a small panel in C. Unpack an [OpenECS release](https://github.com/omerfuyar/OpenECS/releases) into `OpenECS/`, then:
 
 ``` shell
-./build.sh !!! todo remove this
+git submodule update --init
+cc shuild.c -o shuild && ./shuild
 OpenECS/OpenECS --fresh --preset preset.lua
 ```
 
