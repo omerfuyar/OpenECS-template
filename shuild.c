@@ -102,7 +102,7 @@ static void BuildPlugin(const char *path, SHUFileType type, void *data)
 
     char *name = SHU_UtilFormat("%.*s", (int)(end - start), start);
 
-    SHU_MODULE(name, NULL, SHUModuleType_LibraryDynamic, path)
+    SHU_Module(name, NULL, SHUModuleType_LibraryDynamic, path)
     {
         SHU_CompilerClearFlags();
         SHU_CompilerAddFlags(SHUM_FLAGS_STANDARD_C23, SHUM_FLAGS_WARNING_MID, SHUM_FLAGS_OPTIMIZATION_MID, "-fvisibility=hidden");
