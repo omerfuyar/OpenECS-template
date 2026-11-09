@@ -47,6 +47,7 @@ A preset is a Lua file that returns a table. OpenECS reads it as data: it can us
 - `pluginsDir` is a folder, relative to the preset, where plugins are looked for first. Then OpenECS looks in the user's plugins and its own.
 - `settings` sets settings for this tool, and `keys` adds keys (9).
 - `workspaces` is a list of named arrangements of panels. Each holds `windows`, one layout tree for each OS window: the main window first, then any pop-out windows. A tree's node is either a group, `{ panels = { ... } }`, whose panels are tabs, or a split, `{ split = "horizontal", child, child }`. A split's child has a `share` of the room, or a fixed `size` in layout units.
+- `format` is the version of the file's format, which OpenECS checks.
 - `open` names a function that gets each file of the command line, such as `OpenECS/OpenECS --preset preset.lua notes.txt`.
 
 ## 5. A plugin
@@ -89,22 +90,23 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 
 ## 8. Settings
 
-- `ecs.settings.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
-- `ecs.settings.get("notes.newestFirst")` gives the value in effect: from the user's settings file, its part for this tool first; else from the preset's `settings`; else the default. Colours have one more layer before the default: the theme, dark or light.
+- `ecs.setting.declare({ name = "newestFirst", type = "bool", default = true, description = "...", changed = fn })` declares `notes.newestFirst`. Types: `bool`, `integer`, `number`, `string`, `choice`, `key`, `color`, `list` and `table`.
+- `ecs.setting.get("notes.newestFirst")` gives the value in effect: from the user's settings file, its part for this tool first; else from the preset's `settings`; else the default. Colours have one more layer before the default: the theme, dark or light.
 - The settings window lists every setting with its description, and writes the user's file. `changed` runs when the value in effect changes, wherever the change comes from.
 
 ## 9. Functions and keys
 
 - `ecs.service.register({ remove = { sig = "void(handle<ecs.panel> panel)", doc = "...", fn = fn } })` registers `notes.remove` in this template. The signature tells how values pass between Lua and C, so plugins in either language call it.
-- `ecs.input.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
+- `ecs.key.bind("notes.board", "Delete", "notes.remove")` binds a key while a board has the focus. A function that takes a panel gets the focused one.
 - `ecs.panel.addMenuEntry("notes.board", "notes.remove")` adds it to the board's right-click menu. A menu entry's function takes the panel, `void(handle<ecs.panel> panel)`, or nothing, `void()`. The entry shows the function's description, and the key the plugin bound to it for the board, such as Delete.
 - The preset's `keys` and the user's settings file add keys and change them: `keys = { ["notes.board"] = { ["Ctrl+D"] = "notes.remove" } }`. A key under `prefix` runs after Alt+W.
-- Another lua plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`. A C plugin calls it through `notes.h`, the header `--definitions` writes for notes: `NotesFunctions_Get(plugin, &notes)` looks up every function of notes, then `notes.remove(panel)` calls one.
+- Another Lua plugin calls it with `require("notes").remove(panel)`, once its manifest depends on `notes`. A C plugin calls it through `notes.h`, the header `--definitions` writes for notes: `NotesFunctions_Get(plugin, &notes)` looks up every function of notes, then `notes.remove(panel)` calls one.
 
 ## 10. Saved state
 
 - A panel's `saveState` gives a Lua value of plain data, which the session keeps; `create` gets it back with the `stateVersion` it was saved with, so a newer plugin can read an older state or leave it.
 - A plugin's own state, apart from its panels, is `ecs.plugin.register({ stateVersion = 1, saveState = fn, restoreState = fn, destroy = fn })`. `destroy` runs before the program exits.
+- The user can disable and enable plugins while the tool runs, in the plugin list (Alt+W, then ;). A disabled plugin's `destroy` runs, its panels wait as placeholders, and when it is enabled again it runs from the start and gets back its state.
 - Alt+W, then S saves the session to a file you choose. The dialog starts in the user's folder of saved sessions, `~/.local/share/OpenECS/sessions/` (`%APPDATA%\OpenECS\sessions\` on Windows), which the launcher lists, for every tool.
 
 ## 11. Events and timers
@@ -119,7 +121,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 - A native plugin defines `ECSPlugin_Init(plugin)`, which registers everything, as `init.lua` does. `OpenECS.h` documents every function, and names each one's Lua counterpart.
 - `draw.h`, in OpenECS's `include/`, has the functions of draw: `DrawFunctions_Get(plugin, &draw)` looks them all up, with their signatures. OpenECS writes such a header for any plugin: `OpenECS/OpenECS --definitions OpenECS/include/` writes the plugin interface and them for every plugin it finds.
 - A C plugin's memory is its own; free it in the panel's `Destroy`, and in the plugin's `Destroy` (`ECSPlugin_Register`).
-- C and Lua plugins work together through functions, events and handles, whatever language each is in.
+- C and Lua plugins work together through functions, events, handles and structs, whatever language each is in. A struct is plain data, such as a vector: `ECSStruct_Register(plugin, "vec2", "float x, float y")` in C, or `ecs.struct.register` in Lua.
 - A C plugin does the same with `ECSEvent_Declare`, `ECSEvent_Emit`, `ECSEvent_Subscribe` and `ECSTimer_Start`, which `OpenECS.h` documents beside their Lua names.
 
 ## 13. Your editor
@@ -138,16 +140,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 
 - **Name it.** Change `name`, `app.id` and `app.name` in `preset.lua`, rename the plugins and their folders, and change the names they declare.
 - **Install it.** Copy the plugins' folders, with the built libraries, into `~/.local/share/OpenECS/plugins/`, and the preset into `~/.config/OpenECS/presets/`. On Windows, both go into `%APPDATA%\OpenECS\`: `plugins\` and `presets\`. Then `OpenECS --preset mytool` starts it by name, and the launcher lists it.
-- **Add it to the desktop.** A desktop file in `~/.local/share/applications/`, named after `app.id`, puts it in the system's launcher:
-
-  ``` ini
-  [Desktop Entry]
-  Type=Application
-  Name=My tool
-  Exec=/path/to/OpenECS/OpenECS --preset mytool %F
-  ```
-
-  On Windows, a shortcut to `OpenECS.exe` with the arguments `--preset mytool` does the same.
+- **Add it to the system's launcher.** `OpenECS/OpenECS --preset mytool --install` adds the tool with its name and icon: a desktop file on Linux, a Start menu shortcut on Windows. The preset's `app.categories` and `app.mimeTypes` say where it goes and which files it opens. `--uninstall` removes it.
 
 ## 16. Where to go next
 
