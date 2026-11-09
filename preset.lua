@@ -2,7 +2,7 @@
 -- Run the tool with: OpenECS/OpenECS --fresh --preset preset.lua
 ---@type ecs.Preset
 return {
-  format = 1,      -- the version of this file's format
+  format = 3,      -- the version of this file's format
   name = "mytool", -- the name --preset and the launcher know the preset by
   version = "0.1.0",
   -- the id names the tool's saved session and its desktop file, and the name is the window's title
