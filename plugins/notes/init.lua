@@ -125,7 +125,7 @@ ecs.panel.registerType({
 })
 
 -- a function that keys and other plugins can run; its full name is "notes.remove"
-assert(ecs.service.register({
+ecs.service.register({
   remove = {
     sig = "void(handle<ecs.panel> panel)",
     doc = "Remove the chosen note",
@@ -138,8 +138,8 @@ assert(ecs.service.register({
       end
     end,
   },
-}))
+})
 
 -- Delete runs it while a board has the focus; presets and the user's settings can change the key
-assert(ecs.key.bind("notes.board", "Delete", "notes.remove"))
-assert(ecs.panel.addMenuEntry("notes.board", "notes.remove"))
+ecs.key.bind("notes.board", "Delete", "notes.remove")
+ecs.panel.addMenuEntry("notes.board", "notes.remove")
