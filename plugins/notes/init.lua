@@ -4,6 +4,9 @@
 local ecs = require("ecs") -- the plugin interface; each plugin gets its own
 local ui = require("ui")   -- the functions of the ui plugin, which the manifest depends on
 
+-- ui's own styles, which its standard views use too
+local STYLES = ui.styles()
+
 -- version of the state a board saves; a board restores only a state of this version
 local STATE_VERSION = 1
 
@@ -86,7 +89,7 @@ ecs.panel.registerType({
     end
 
     if #items == 0 then
-      items[1] = ui.text("No notes yet.", { style = "note", selectable = false })
+      items[1] = ui.text("No notes yet.", { style = STYLES.note, selectable = false })
     end
 
     ui.show(board.panel, surface, ui.column({ padding = 16, gap = 8 }, {
