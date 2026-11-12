@@ -78,7 +78,14 @@ static void PulseDraw(void *state, ECSSurface *surface, f64 seconds)
 
     PULSE.draw.fill(surface, 0.0f, 0.0f, width, height, background);
     PULSE.draw.circle(surface, width / 2.0f, height / 2.0f - 40.0f, size, 0.0f, accent);
-    PULSE.draw.text(surface, PULSE.draw.font("ui"), text, 16.0f, height / 2.0f, 18.0f, accent);
+
+    // a function that can fail outside its caller gives why in its last parameter, and returns nothing
+    const char *error = nullptr;
+    void *font = PULSE.draw.font("ui", &error);
+    if (font != nullptr)
+    {
+        PULSE.draw.text(surface, font, text, 16.0f, height / 2.0f, 18.0f, accent);
+    }
 }
 
 // OpenECS calls it once, after it loads the library; a plugin registers everything here
