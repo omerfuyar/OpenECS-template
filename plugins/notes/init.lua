@@ -86,7 +86,7 @@ ecs.panel.registerType({
     end
 
     if #items == 0 then
-      items[1] = ui.text("No notes yet.", { color = "textDim", selectable = false })
+      items[1] = ui.text("No notes yet.", { style = "note", selectable = false })
     end
 
     ui.show(board.panel, surface, ui.column({ padding = 16, gap = 8 }, {
