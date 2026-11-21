@@ -74,6 +74,8 @@ A panel type is a table of functions that OpenECS calls; each panel of the type 
 | `saveState(state)`              | When the session is saved.                                                         |
 | `destroy(state)`                | When the panel closes.                                                             |
 
+The board is an object of a class, `Board`: a table whose functions are methods, with `Board.__index = Board`. `create` gives `setmetatable({ panel = panel, ... }, Board)`, the type names the methods, `draw = Board.draw`, and OpenECS's call `draw(board, surface)` is `board:draw(surface)`. The board's own functions are methods too: `self:add(text)`.
+
 - A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, etc.
 
 ## 7. Drawing

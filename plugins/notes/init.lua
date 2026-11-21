@@ -26,11 +26,28 @@ ecs.setting.declare({
   end,
 })
 
--- the notes in the order the setting asks for, each with its place in board.notes
-local function shown(board)
+-- a board is an object of the class Board: its functions are methods, which get the board as self
+local Board = {}
+Board.__index = Board
+
+-- runs when a board opens; saved is what saveState gave when the session was saved, or nil for a new board
+function Board.create(panel, saved, version)
+  local board = setmetatable({ panel = panel, notes = {}, draft = "", selected = 1 }, Board)
+
+  if version == STATE_VERSION and saved then
+    board.notes = saved.notes or {}
+  end
+
+  panel.title = ("Notes (%d)"):format(#board.notes)
+  boards[panel] = board
+  return board
+end
+
+-- the notes in the order the setting asks for, each with its place in self.notes
+function Board:shown()
   local list = {}
 
-  for i, note in ipairs(board.notes) do
+  for i, note in ipairs(self.notes) do
     list[#list + 1] = { index = i, text = note }
   end
 
@@ -43,88 +60,81 @@ local function shown(board)
   return list
 end
 
-local function add(board, text)
+function Board:add(text)
   if text ~= "" then
-    board.notes[#board.notes + 1] = text
-    board.draft = ""
-    board.panel.title = ("Notes (%d)"):format(#board.notes)
+    self.notes[#self.notes + 1] = text
+    self.draft = ""
+    self.panel.title = ("Notes (%d)"):format(#self.notes)
   end
 end
 
-local function remove(board)
-  local note = shown(board)[board.selected]
+function Board:remove()
+  local note = self:shown()[self.selected]
 
   if note then
-    table.remove(board.notes, note.index)
-    board.selected = math.min(board.selected, #board.notes)
-    board.panel.title = ("Notes (%d)"):format(#board.notes)
-    board.panel:redraw()
+    table.remove(self.notes, note.index)
+    self.selected = math.min(self.selected, #self.notes)
+    self.panel.title = ("Notes (%d)"):format(#self.notes)
+    self.panel:redraw()
   end
 end
 
+-- runs when the board needs drawing: ui lays out and draws the elements described here, each time
+function Board:draw(surface)
+  local items = {}
+
+  for _, note in ipairs(self:shown()) do
+    items[#items + 1] = ui.row({ padding = 4 }, { ui.text(note.text) })
+  end
+
+  if #items == 0 then
+    items[1] = ui.text("No notes yet.", { style = STYLES.note, selectable = false })
+  end
+
+  ui.show(self.panel, surface, ui.column({ padding = 16, gap = 8 }, {
+    ui.row({ gap = 8 }, {
+      ui.field(self.draft, {
+        id = "draft",
+        grow = 1,
+        onChange = function(text) self.draft = text end,
+        onSubmit = function(text) self:add(text) end,
+      }),
+      ui.button("Add", { onClick = function() self:add(self.draft) end }),
+      ui.button("Remove", { onClick = function() self:remove() end }),
+    }),
+    ui.list({
+      id = "notes",
+      selected = self.selected,
+      onSelect = function(index) self.selected = index end,
+    }, items),
+  }))
+end
+
+-- the panel's events go to ui, which calls the callbacks of the elements they reach
+function Board:event(event)
+  ui.event(self.panel, event)
+end
+
+-- what the session keeps of the board
+function Board:saveState()
+  return { notes = self.notes }
+end
+
+function Board:destroy()
+  ui.forget(self.panel)
+  boards[self.panel] = nil
+end
+
+-- the type names the class's methods; the core calls them with the board, as board:draw(surface) does
 ecs.panel.registerType({
   name = "board", -- the local name; presets name the type "notes.board"
   title = "Notes",
   stateVersion = STATE_VERSION,
-
-  -- runs when a board opens; saved is what saveState gave when the session was saved, or nil for a new board
-  create = function(panel, saved, version)
-    local board = { panel = panel, notes = {}, draft = "", selected = 1 }
-
-    if version == STATE_VERSION and saved then
-      board.notes = saved.notes or {}
-    end
-
-    panel.title = ("Notes (%d)"):format(#board.notes)
-    boards[panel] = board
-    return board
-  end,
-
-  -- runs when the board needs drawing: ui lays out and draws the elements described here, each time
-  draw = function(board, surface)
-    local items = {}
-
-    for _, note in ipairs(shown(board)) do
-      items[#items + 1] = ui.row({ padding = 4 }, { ui.text(note.text) })
-    end
-
-    if #items == 0 then
-      items[1] = ui.text("No notes yet.", { style = STYLES.note, selectable = false })
-    end
-
-    ui.show(board.panel, surface, ui.column({ padding = 16, gap = 8 }, {
-      ui.row({ gap = 8 }, {
-        ui.field(board.draft, {
-          id = "draft",
-          grow = 1,
-          onChange = function(text) board.draft = text end,
-          onSubmit = function(text) add(board, text) end,
-        }),
-        ui.button("Add", { onClick = function() add(board, board.draft) end }),
-        ui.button("Remove", { onClick = function() remove(board) end }),
-      }),
-      ui.list({
-        id = "notes",
-        selected = board.selected,
-        onSelect = function(index) board.selected = index end,
-      }, items),
-    }))
-  end,
-
-  -- the panel's events go to ui, which calls the callbacks of the elements they reach
-  event = function(board, event)
-    ui.event(board.panel, event)
-  end,
-
-  -- what the session keeps of the board
-  saveState = function(board)
-    return { notes = board.notes }
-  end,
-
-  destroy = function(board)
-    ui.forget(board.panel)
-    boards[board.panel] = nil
-  end,
+  create = Board.create,
+  draw = Board.draw,
+  event = Board.event,
+  saveState = Board.saveState,
+  destroy = Board.destroy,
 })
 
 -- a function that keys and other plugins can run; its full name is "notes.remove"
@@ -137,7 +147,7 @@ ecs.service.register({
 
       -- a key in the board's field types text, so Delete removes a note only while no field has the keys
       if board and not ui.focus(panel) then
-        remove(board)
+        board:remove()
       end
     end,
   },
