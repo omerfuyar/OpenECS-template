@@ -1,4 +1,6 @@
 {
+  "runtime.version": "LuaJIT",
+  "runtime.enableLuaJITExtensions": true,
   "workspace.library": [
     "OpenECS/include"
   ]
