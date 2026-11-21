@@ -23,7 +23,7 @@ A tool made from this template is its owner's own repository; its owner may keep
 | `.claude/`             | Claude Code's settings and notes: it formats each C file it edits; `notes.md` says why the tools are set up as they are. |
 | `LICENSE.md`           | The license, zlib.                                                                                                       |
 
-OpenECS's OVERVIEW.md and DESIGN.md hold how OpenECS works. Before you propose or change anything, read their Contents, then every section the task touches.
+OpenECS's DESIGN.md holds how OpenECS works. Before you propose or change anything, read their Contents, then every section the task touches.
 
 ## Differences
 
