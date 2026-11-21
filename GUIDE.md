@@ -6,7 +6,7 @@ This guide goes through the template, one part at a time, and ends with what you
 
 - **OpenECS.** Download the archive from [OpenECS's releases](https://github.com/omerfuyar/OpenECS/releases) or build it from source.
 - **A C compiler**, for plugins in C: any C23 compatible one. See `Development Dependencies` of [OpenECS readme](https://github.com/omerfuyar/OpenECS/blob/dev/README.md).
-- **An editor with the Lua language server**, such as VS Code with the Lua extension, for completion and checks. Not mandatory of course, for convenience.
+- **An editor with the Lua language server** 3.19.2 or newer, which reads LuaJIT's syntax, such as VS Code with the Lua extension, for completion and checks. Not mandatory of course, for convenience.
 
 ## 2. Run the tool
 
