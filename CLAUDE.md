@@ -21,7 +21,7 @@ A tool made from this template is its owner's own repository; its owner may keep
 | `.clang-format`        | How clang-format formats the C code, as OpenECS's does.                                                                  |
 | `.clang-tidy`          | What clang-tidy checks in the C code: OpenECS-std's names for a plugin's functions, and common bugs.                     |
 | `.claude/`             | Claude Code's settings and notes: it formats each C file it edits; `notes.md` says why the tools are set up as they are. |
-| `LICENSE.md`           | The license, zlib.                                                                                                       |
+| `LICENSE.md`           | The license, 0BSD.                                                                                                        |
 
 OpenECS's DESIGN.md holds how OpenECS works. Before you propose or change anything, read their Contents, then every section the task touches.
 
