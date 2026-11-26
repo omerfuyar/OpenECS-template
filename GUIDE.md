@@ -74,7 +74,7 @@ A panel type is a table of functions that OpenECS calls; each panel of the type 
 | `saveState(state)`              | When the session is saved.                                                         |
 | `destroy(state)`                | When the panel closes.                                                             |
 
-The board is an object of a class, `Board`: a table whose functions are methods, with `Board.__index = Board`. `create` gives `setmetatable({ panel = panel, ... }, Board)`, the type names the methods, `draw = Board.draw`, and OpenECS's call `draw(board, surface)` is `board:draw(surface)`. The board's own functions are methods too: `self:add(text)`.
+The board is an object of a class, `Board`: a table whose functions are methods, with `Board.__index = Board`. `create` gives `setmetatable({ panel = panel, ... }, Board)`, the type names the methods, `saveState = Board.saveState`, and OpenECS's call `saveState(board)` is `board:saveState()`. The board's own functions are methods too: `self:add(text)`.
 
 - A panel handle has fields: `panel.title`, which sets its tab's title, `panel.unsaved`, which marks unsaved work and asks before closing, `panel.id` and `panel.type`. Its methods do things: `panel:redraw()`, etc.
 
@@ -85,7 +85,7 @@ A panel draws into its surface: pixels that OpenECS shows. Sizes in plugins are 
 - A panel type with `continuous = true` draws every frame while it shows. Draws on demand if not.
 - `surface:fill(x, y, width, height, color)` fills pixels. Colours are texts: `"#RRGGBB"`, `"#RRGGBBAA"`, or a colour of the theme, such as `"background"`, `"text"` or `"accent"`, which follow the current theme; dark, light or custom.
 - The **draw** plugin draws shapes, images and text: `draw.fill`, `draw.line`, `draw.circle`, `draw.text` and more.
-- The **ui** plugin builds interfaces on draw. The board describes its elements each time it draws, and `ui.show` lays them out and draws them; `ui.event` gives the board's events to them. Its elements: columns, rows, lists, separators, text, buttons, sliders, toggles etc.
+- The **ui** plugin builds interfaces on draw. The board's type is `ui.panelType({ ..., view = Board.view })`: ui fills in `draw`, which lays out and draws the elements that `view(board, surface)` gives each time, and `event`, which gives the board's events to them; an `event` of the type's own gets the events that no element took. Its elements: columns, rows, lists, separators, text, buttons, sliders, toggles etc.
 - Plugins that read files give draw what to draw: **image** reads images, and **gltf** 3D models.
 
 [OpenECS-std's design](https://github.com/omerfuyar/OpenECS-std/blob/dev/DESIGN.md) describes every standard plugin.
