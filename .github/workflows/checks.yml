@@ -1,3 +1,6 @@
+# Checks every change to dev and main: the C files' format, the test with a Debug build of OpenECS's dev on Linux and Windows, and the Lua annotations.
+# A pull request builds OpenECS's branch of the same name, when there is one. A change of documents alone, the .md files, skips the tests;
+# Format and Lua (LuaLS) always run, and a run by hand runs everything.
 name: Checks
 
 on:
@@ -16,6 +19,25 @@ permissions:
     contents: read
 
 jobs:
+    # tells the other jobs whether a file other than a document changed, as a change of documents alone skips the tests,
+    # and, for a pull request, whether OpenECS has a branch of the same name, which the jobs build in place of its dev
+    changes:
+        name: Changes
+        runs-on: ubuntu-24.04
+        outputs:
+            code: ${{ steps.changes.outputs.code }}
+            openecs: ${{ steps.changes.outputs.openecs }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Name what changed
+              id: changes
+              env:
+                  BEFORE: ${{ github.event.before }}
+              run: .github/scripts/changes.sh openecs=OpenECS
+
     format:
         name: Format
         runs-on: ubuntu-24.04
@@ -33,6 +55,9 @@ jobs:
 
     test-linux:
         name: Test (Linux)
+        needs: changes
+        # skipped when only documents changed; it runs when the job changes gives no answer
+        if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
         runs-on: ubuntu-24.04
         steps:
             # shuild and shu, which build the plugins in C, are submodules
@@ -40,11 +65,11 @@ jobs:
               with:
                   submodules: true
 
-            # the template follows OpenECS's dev: its Debug build runs tests, which releases do not
+            # the template follows OpenECS's dev, or a pull request's branch of the same name: its Debug build runs tests, which releases do not
             - uses: actions/checkout@v4
               with:
                   repository: omerfuyar/OpenECS
-                  ref: dev
+                  ref: ${{ needs.changes.outputs.openecs || 'dev' }}
                   submodules: recursive
                   path: OpenECS
 
@@ -99,6 +124,9 @@ jobs:
 
     test-windows:
         name: Test (Windows)
+        needs: changes
+        # skipped when only documents changed; it runs when the job changes gives no answer
+        if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
         runs-on: windows-2025
         defaults:
             run:
@@ -111,7 +139,7 @@ jobs:
             - uses: actions/checkout@v4
               with:
                   repository: omerfuyar/OpenECS
-                  ref: dev
+                  ref: ${{ needs.changes.outputs.openecs || 'dev' }}
                   submodules: recursive
                   path: OpenECS
 
@@ -169,6 +197,8 @@ jobs:
 
     lua:
         name: Lua (LuaLS)
+        needs: changes
+        if: ${{ !cancelled() }}
         runs-on: ubuntu-24.04
         env:
             LUALS_VERSION: 3.19.2
@@ -178,7 +208,7 @@ jobs:
             - uses: actions/checkout@v4
               with:
                   repository: omerfuyar/OpenECS
-                  ref: dev
+                  ref: ${{ needs.changes.outputs.openecs || 'dev' }}
                   path: OpenECS-source
 
             - name: Install the Lua language server
