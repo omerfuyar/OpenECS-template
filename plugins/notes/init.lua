@@ -79,8 +79,8 @@ function Board:remove()
   end
 end
 
--- runs when the board needs drawing: ui lays out and draws the elements described here, each time
-function Board:draw(surface)
+-- gives the board's elements each time it draws; ui lays them out and draws them
+function Board:view()
   local items = {}
 
   for _, note in ipairs(self:shown()) do
@@ -91,7 +91,7 @@ function Board:draw(surface)
     items[1] = ui.text("No notes yet.", { style = STYLES.note, selectable = false })
   end
 
-  ui.show(self.panel, surface, ui.column({ padding = 16, gap = 8 }, {
+  return ui.column({ padding = 16, gap = 8 }, {
     ui.row({ gap = 8 }, {
       ui.field(self.draft, {
         id = "draft",
@@ -107,12 +107,7 @@ function Board:draw(surface)
       selected = self.selected,
       onSelect = function(index) self.selected = index end,
     }, items),
-  }))
-end
-
--- the panel's events go to ui, which calls the callbacks of the elements they reach
-function Board:event(event)
-  ui.event(self.panel, event)
+  })
 end
 
 -- what the session keeps of the board
@@ -121,21 +116,20 @@ function Board:saveState()
 end
 
 function Board:destroy()
-  ui.forget(self.panel)
   boards[self.panel] = nil
 end
 
--- the type names the class's methods; the core calls them with the board, as board:draw(surface) does
-ecs.panel.registerType({
+-- the type names the class's methods; the core calls them with the board, as board:saveState() does. ui.panelType fills in draw, which shows
+-- what view gives, event, which gives the board's events to its elements, and destroy's part of ui
+ecs.panel.registerType(ui.panelType({
   name = "board", -- the local name; presets name the type "notes.board"
   title = "Notes",
   stateVersion = STATE_VERSION,
   create = Board.create,
-  draw = Board.draw,
-  event = Board.event,
+  view = Board.view,
   saveState = Board.saveState,
   destroy = Board.destroy,
-})
+}))
 
 -- a function that keys and other plugins can run; its full name is "notes.remove"
 ecs.service.register({
